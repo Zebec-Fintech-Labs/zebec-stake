@@ -22,11 +22,11 @@ pub mod stake_zbcn {
         stake::handler(ctx, params)
     }
 
-    pub fn unstake_zbcn(ctx: Context<UnStake>) -> Result<()> {
-        unstake::handler(ctx)
-    }
+    // pub fn unstake_zbcn(ctx: Context<UnStake>) -> Result<()> {
+    //     unstake::handler(ctx)
+    // }
 
-    pub fn claim_reward(ctx: Context<ClaimReward>) -> Result<()> {
-        claim_reward::handler(ctx)
-    }
+    // pub fn claim_reward(ctx: Context<ClaimReward>) -> Result<()> {
+    //     claim_reward::handler(ctx)
+    // }
 }
