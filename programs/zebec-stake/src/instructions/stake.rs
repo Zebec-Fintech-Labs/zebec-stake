@@ -61,6 +61,7 @@ pub struct Stake<'info> {
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct StakeParams {
     pub amount: u64,
+    pub lock_period: i64,
     pub nonce: u64,
 }
 
@@ -104,6 +105,7 @@ pub fn handler(ctx: Context<Stake>, params: StakeParams) -> Result<()> {
     lockup.staked_token.total_staked += params.amount;
     stake_pda.created_time = current_time;
     stake_pda.nonce = params.nonce;
+    stake_pda.lock_period = params.lock_period;
     user_nonce.nonce += 1;
 
     Ok(())
