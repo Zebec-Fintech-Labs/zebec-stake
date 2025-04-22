@@ -11,7 +11,7 @@ use state::*;
 declare_id!("6S5tbu8jPJKFvpBMjaMPQbcwcrw8iHcuGnXH8ZwHgwaE");
 
 #[program]
-pub mod stake_zbcn {
+pub mod zebec_stake {
     use super::*;
 
     pub fn init_lockup(ctx: Context<InitLockup>, params: InitConfigParams) -> Result<()> {
@@ -22,11 +22,7 @@ pub mod stake_zbcn {
         stake::handler(ctx, params)
     }
 
-    // pub fn unstake_zbcn(ctx: Context<UnStake>) -> Result<()> {
-    //     unstake::handler(ctx)
-    // }
-
-    // pub fn claim_reward(ctx: Context<ClaimReward>) -> Result<()> {
-    //     claim_reward::handler(ctx)
-    // }
+    pub fn unstake_zbcn(ctx: Context<Unstake>, nonce: u64) -> Result<()> {
+        unstake::handler(ctx, nonce)
+    }
 }

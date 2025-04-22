@@ -45,8 +45,6 @@ pub struct FeeInfo {
 pub struct InitConfigParams {
     pub name: String,
     pub lock_period: i64,
-    pub staking_end_time: i64,
-    pub staking_start_time: i64,
     pub fee: u64,
     pub fee_vault: Pubkey,
     pub duration_map: Vec<DurationMap>,

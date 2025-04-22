@@ -8,7 +8,6 @@ pub struct UserStakeData {
     pub created_time: i64,
     pub staked_amount: u64,
     pub reward_amount: u64,
-    pub reward_claimed: bool,
     pub stake_claimed: bool,
     pub lock_period: i64,
 }
