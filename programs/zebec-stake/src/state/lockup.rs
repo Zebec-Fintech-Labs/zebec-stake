@@ -41,10 +41,9 @@ pub struct FeeInfo {
     pub fee_vault: Pubkey,
 }
 
-#[account(AnchorSerialize, AnchorDeserialize)]
+#[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct InitConfigParams {
     pub name: String,
-    pub lock_period: i64,
     pub fee: u64,
     pub fee_vault: Pubkey,
     pub duration_map: Vec<DurationMap>,

@@ -14,6 +14,10 @@ pub enum ZbcnStakeError {
     InvalidStaker,
     #[msg("Invalid nonce")]
     InvaildNonce,
+    #[msg("UnAuthorized")]
+    UnAuthorized,
+    InvalidLockPeriod,
+    InvalidAmount,
 
     RewardAlreadyClaimed,
     StakeRewardNotClaimable,

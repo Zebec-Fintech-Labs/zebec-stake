@@ -25,4 +25,11 @@ pub mod zebec_stake {
     pub fn unstake_zbcn(ctx: Context<Unstake>, nonce: u64) -> Result<()> {
         unstake::handler(ctx, nonce)
     }
+
+    pub fn whitelist_staker(
+        ctx: Context<WhitelistStaker>,
+        params: WhitelistStakerParams,
+    ) -> Result<()> {
+        whitelist_staker::handler(ctx, params)
+    }
 }

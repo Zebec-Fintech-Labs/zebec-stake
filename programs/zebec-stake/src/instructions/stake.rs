@@ -27,7 +27,7 @@ pub struct Stake<'info> {
     #[account(
         init_if_needed,
         payer = staker,
-        space = 8 + UserStakeData::INIT_SPACE,
+        space = 8 + UserNonce::INIT_SPACE,
         seeds = [staker.key().as_ref(), lockup.key().as_ref()],
         bump
     )]

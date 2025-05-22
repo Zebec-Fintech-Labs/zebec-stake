@@ -1,4 +1,6 @@
-use crate::{error::ZbcnStakeError, Lockup, UserStakeData, LOCKUP, STAKE_VAULT};
+use crate::{
+    constants::REWARD_VAULT, error::ZbcnStakeError, Lockup, UserStakeData, LOCKUP, STAKE_VAULT,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -45,6 +47,14 @@ pub struct Unstake<'info> {
     )]
     /// CHECK: seeds has been checked
     pub stake_vault: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [REWARD_VAULT.as_bytes(), lockup.key().as_ref()],
+        bump
+    )]
+    /// CHECK: seeds has been checked
+    pub reward_vault: AccountInfo<'info>,
     #[account(
         init_if_needed,
         payer = staker,
@@ -56,9 +66,9 @@ pub struct Unstake<'info> {
         init_if_needed,
         payer = staker,
         associated_token::mint = reward_token,
-        associated_token::authority = stake_vault,
+        associated_token::authority = reward_vault,
     )]
-    pub stake_vault_reward_token_account: Account<'info, TokenAccount>,
+    pub reward_vault_token_account: Account<'info, TokenAccount>,
     #[account(
         constraint = lockup.fee_info.fee_vault == *fee_vault.key,
     )]
@@ -107,7 +117,7 @@ pub fn handler(ctx: Context<Unstake>, nonce: u64) -> Result<()> {
     }
 
     let staker_reward_token_account = &ctx.accounts.staker_reward_token_account;
-    let stake_vault_reward_token_account = &ctx.accounts.stake_vault_reward_token_account;
+    let reward_vault_token_account = &ctx.accounts.reward_vault_token_account;
 
     let lockup_key = lockup.key();
     let (_, bump_seed) = Pubkey::find_program_address(
@@ -117,7 +127,7 @@ pub fn handler(ctx: Context<Unstake>, nonce: u64) -> Result<()> {
     let lockup_vault_seed: &[&[&[_]]] =
         &[&[STAKE_VAULT.as_bytes(), lockup_key.as_ref(), &[bump_seed]]];
     let trns_spl: Transfer<'_> = Transfer {
-        from: stake_vault_reward_token_account.to_account_info(),
+        from: reward_vault_token_account.to_account_info(),
         to: staker_reward_token_account.to_account_info(),
         authority: stake_vault.to_account_info(),
     };

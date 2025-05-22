@@ -4,7 +4,7 @@ use anchor_spl::{
     token::{Mint, Token},
 };
 
-use crate::{InitConfigParams, Lockup, LOCKUP, STAKE_VAULT};
+use crate::{constants::REWARD_VAULT, InitConfigParams, Lockup, LOCKUP, STAKE_VAULT};
 
 #[derive(Accounts)]
 #[instruction(args: InitConfigParams)]
@@ -28,6 +28,15 @@ pub struct InitLockup<'info> {
     )]
     /// CHECK: seeds has been checked
     pub stake_vault: AccountInfo<'info>,
+    #[account(
+        init_if_needed,
+        payer = creator,
+        space = 0,
+        seeds = [REWARD_VAULT.as_bytes(), lockup.key().as_ref()],
+        bump
+    )]
+    /// CHECK: seeds has been checked
+    pub reward_vault: AccountInfo<'info>,
     pub stake_token: Account<'info, Mint>,
     pub reward_token: Account<'info, Mint>,
     pub system_program: Program<'info, System>,
@@ -37,7 +46,7 @@ pub struct InitLockup<'info> {
 
 pub fn handler(ctx: Context<InitLockup>, params: InitConfigParams) -> Result<()> {
     let lockup = &mut ctx.accounts.lockup;
-    let creator = ctx.accounts.creator.key();
+    let creator: Pubkey = ctx.accounts.creator.key();
     let reward_token = ctx.accounts.reward_token.key();
     let staked_token = ctx.accounts.stake_token.key();
     lockup.init(params, creator, reward_token, staked_token)?;
