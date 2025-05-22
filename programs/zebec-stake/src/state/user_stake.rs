@@ -4,7 +4,6 @@ use anchor_lang::prelude::*;
 #[derive(Default, InitSpace)]
 pub struct UserStakeData {
     pub nonce: u64,
-    pub staker: Pubkey,
     pub created_time: i64,
     pub staked_amount: u64,
     pub reward_amount: u64,

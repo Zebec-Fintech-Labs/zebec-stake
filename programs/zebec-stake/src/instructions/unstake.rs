@@ -8,7 +8,7 @@ use anchor_spl::{
 };
 
 #[derive(Accounts)]
-#[instruction(nonce: u64)]
+#[instruction(_nonce: u64)]
 pub struct Unstake<'info> {
     #[account(mut)]
     pub staker: Signer<'info>,
@@ -20,7 +20,7 @@ pub struct Unstake<'info> {
     pub lockup: Box<Account<'info, Lockup>>,
     #[account(
         mut,
-        seeds = [staker.key().as_ref(), lockup.key().as_ref(), &nonce.to_le_bytes()],
+        seeds = [staker.key().as_ref(), lockup.key().as_ref(), &_nonce.to_le_bytes()],
         bump
     )]
     pub stake_pda: Box<Account<'info, UserStakeData>>,
@@ -85,10 +85,9 @@ pub struct Unstake<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<Unstake>, nonce: u64) -> Result<()> {
+pub fn handler(ctx: Context<Unstake>, _nonce: u64) -> Result<()> {
     let lockup = &ctx.accounts.lockup;
     let stake_pda = &mut ctx.accounts.stake_pda;
-    let staker = &ctx.accounts.staker;
     let stake_vault = &ctx.accounts.stake_vault;
     let token_program = &ctx.accounts.token_program;
     let reward_token = &ctx.accounts.reward_token;
@@ -102,7 +101,6 @@ pub fn handler(ctx: Context<Unstake>, nonce: u64) -> Result<()> {
         stake_token.key(),
         &lockup,
         &stake_pda,
-        staker,
         current_time,
     )?;
 
@@ -133,9 +131,7 @@ pub fn handler(ctx: Context<Unstake>, nonce: u64) -> Result<()> {
     };
     let ctx_spl: CpiContext<'_, '_, '_, '_, _> =
         CpiContext::new_with_signer(token_program.to_account_info(), trns_spl, lockup_vault_seed);
-
-    let transfer_amount: u64 = total_reward_amount as u64;
-    transfer(ctx_spl, transfer_amount)?;
+    transfer(ctx_spl, total_reward_amount as u64)?;
 
     let fee_amount = (stake_pda.staked_amount * lockup.fee_info.fee) / 1000;
     let unstake_amount = stake_pda.staked_amount - fee_amount;
@@ -175,7 +171,7 @@ pub fn handler(ctx: Context<Unstake>, nonce: u64) -> Result<()> {
     );
     transfer(ctx_transfer_fee, fee_amount)?;
 
-    stake_pda.reward_amount += transfer_amount;
+    stake_pda.reward_amount += total_reward_amount as u64;
     stake_pda.stake_claimed = true;
 
     Ok(())
@@ -186,7 +182,6 @@ fn run_validations(
     stake_token: Pubkey,
     lockup: &Lockup,
     stake_pda: &UserStakeData,
-    staker: &AccountInfo,
     current_time: i64,
 ) -> Result<()> {
     if stake_pda.stake_claimed {
@@ -201,11 +196,6 @@ fn run_validations(
     require!(
         stake_token == lockup.staked_token.token_address,
         ZbcnStakeError::InvalidStakeToken
-    );
-
-    require!(
-        stake_pda.staker == *staker.key,
-        ZbcnStakeError::InvalidStaker
     );
 
     require!(

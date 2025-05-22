@@ -82,15 +82,6 @@ pub fn handler(ctx: Context<Stake>, params: StakeParams) -> Result<()> {
 
     run_validations(stake_token.key(), lockup)?;
 
-    if stake_pda.created_time == 0 {
-        stake_pda.staker = staker.key();
-    }
-
-    require!(
-        staker.key() == stake_pda.staker,
-        ZbcnStakeError::InvalidStaker
-    );
-
     let trns_spl = Transfer {
         from: staker_stake_token_account.to_account_info(),
         to: stake_vault_token_account.to_account_info(),
