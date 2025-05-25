@@ -4,6 +4,9 @@
 resolution = true
 skip-lint = false
 
+[programs.devnet]
+stake_zbcn = "Fe5ymSEjtQ229rmfhYkNtWR1dS7ctFwoSCN7hibhDLA6"
+
 [programs.localnet]
 stake_zbcn = "6S5tbu8jPJKFvpBMjaMPQbcwcrw8iHcuGnXH8ZwHgwaE"
 
@@ -11,7 +14,7 @@ stake_zbcn = "6S5tbu8jPJKFvpBMjaMPQbcwcrw8iHcuGnXH8ZwHgwaE"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

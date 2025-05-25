@@ -23,7 +23,7 @@ pub struct Stake<'info> {
         seeds = [staker.key().as_ref(), lockup.key().as_ref(), args.nonce.to_le_bytes().as_ref()],
         bump
     )]
-    pub user_pda: Box<Account<'info, UserStakeData>>,
+    pub stake_pda: Box<Account<'info, UserStakeData>>,
     #[account(
         init_if_needed,
         payer = staker,
@@ -66,7 +66,7 @@ pub struct StakeParams {
 }
 
 pub fn handler(ctx: Context<Stake>, params: StakeParams) -> Result<()> {
-    let stake_pda = &mut ctx.accounts.user_pda;
+    let stake_pda = &mut ctx.accounts.stake_pda;
     let lockup = &mut ctx.accounts.lockup;
     let staker = &ctx.accounts.staker;
     let staker_stake_token_account = &ctx.accounts.staker_token_account;

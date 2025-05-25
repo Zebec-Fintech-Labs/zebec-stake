@@ -1,5 +1,5 @@
 use crate::{
-    constants::REWARD_VAULT, error::ZbcnStakeError, Lockup, UserStakeData, LOCKUP, STAKE_VAULT,
+    constants::REWARD_VAULT, error::ZbcnStakeError, Lockup, UserStakeData, LOCKUP, STAKE_VAULT, SECONDS_PER_YEAR
 };
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -29,7 +29,7 @@ pub struct Unstake<'info> {
     #[account(
         init_if_needed,
         payer = staker,
-        associated_token::mint = reward_token,
+        associated_token::mint = stake_token,
         associated_token::authority = staker,
     )]
     pub staker_token_account: Account<'info, TokenAccount>,
@@ -47,7 +47,6 @@ pub struct Unstake<'info> {
     )]
     /// CHECK: seeds has been checked
     pub stake_vault: AccountInfo<'info>,
-
     #[account(
         mut,
         seeds = [REWARD_VAULT.as_bytes(), lockup.key().as_ref()],
@@ -58,7 +57,7 @@ pub struct Unstake<'info> {
     #[account(
         init_if_needed,
         payer = staker,
-        associated_token::mint = reward_token,
+        associated_token::mint = stake_token,
         associated_token::authority = stake_vault,
     )]
     pub stake_vault_token_account: Account<'info, TokenAccount>,
@@ -89,6 +88,7 @@ pub fn handler(ctx: Context<Unstake>, _nonce: u64) -> Result<()> {
     let lockup = &ctx.accounts.lockup;
     let stake_pda = &mut ctx.accounts.stake_pda;
     let stake_vault = &ctx.accounts.stake_vault;
+    let reward_vault = &ctx.accounts.reward_vault;
     let token_program = &ctx.accounts.token_program;
     let reward_token = &ctx.accounts.reward_token;
     let stake_token = &ctx.accounts.stake_token;
@@ -104,11 +104,8 @@ pub fn handler(ctx: Context<Unstake>, _nonce: u64) -> Result<()> {
         current_time,
     )?;
 
-    let total_reward_amount = ((lockup.get_reward_for_duration(duration as u64).unwrap() as f64)
-        / 365.0
-        * stake_pda.staked_amount as f64
-        * stake_pda.lock_period as f64)
-        / 1000.0;
+    let annual_reward_rate = lockup.get_reward_for_duration(duration as u64).unwrap() as f64 / 10000.0;
+    let total_reward_amount = stake_pda.staked_amount as f64 * (annual_reward_rate) / SECONDS_PER_YEAR * (stake_pda.lock_period as f64);
 
     if total_reward_amount as u64 == 0 {
         return Err(ZbcnStakeError::RewardIsZero.into());
@@ -119,18 +116,18 @@ pub fn handler(ctx: Context<Unstake>, _nonce: u64) -> Result<()> {
 
     let lockup_key = lockup.key();
     let (_, bump_seed) = Pubkey::find_program_address(
-        &[STAKE_VAULT.as_bytes(), lockup_key.as_ref()],
+        &[REWARD_VAULT.as_bytes(), lockup_key.as_ref()],
         ctx.program_id,
     );
-    let lockup_vault_seed: &[&[&[_]]] =
-        &[&[STAKE_VAULT.as_bytes(), lockup_key.as_ref(), &[bump_seed]]];
+    let reward_vault_seed: &[&[&[_]]] =
+        &[&[REWARD_VAULT.as_bytes(), lockup_key.as_ref(), &[bump_seed]]];
     let trns_spl: Transfer<'_> = Transfer {
         from: reward_vault_token_account.to_account_info(),
         to: staker_reward_token_account.to_account_info(),
-        authority: stake_vault.to_account_info(),
+        authority: reward_vault.to_account_info(),
     };
     let ctx_spl: CpiContext<'_, '_, '_, '_, _> =
-        CpiContext::new_with_signer(token_program.to_account_info(), trns_spl, lockup_vault_seed);
+        CpiContext::new_with_signer(token_program.to_account_info(), trns_spl, reward_vault_seed);
     transfer(ctx_spl, total_reward_amount as u64)?;
 
     let fee_amount = (stake_pda.staked_amount * lockup.fee_info.fee) / 1000;
@@ -199,7 +196,7 @@ fn run_validations(
     );
 
     require!(
-        current_time > (stake_pda.created_time + stake_pda.lock_period * 86400),
+        current_time > (stake_pda.created_time + stake_pda.lock_period),
         ZbcnStakeError::StakeRewardNotClaimable
     );
 
