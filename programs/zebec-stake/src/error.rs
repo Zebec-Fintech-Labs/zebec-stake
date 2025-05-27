@@ -2,25 +2,29 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum ZbcnStakeError {
-    #[msg("Invalid time")]
+    #[msg("Invalid Time")]
     InvalidTime,
-    #[msg("Invalid stake token")]
+    #[msg("Invalid Stake Token")]
     InvalidStakeToken,
-    #[msg("Invalid reward token")]
+    #[msg("Invalid Reward Token")]
     InvalidRewardToken,
-    #[msg("Invalid stake Period")]
+    #[msg("Invalid Stake Period")]
     InvalidStakePeriod,
-    #[msg("Invalid staker")]
+    #[msg("Invalid Staker")]
     InvalidStaker,
-    #[msg("Invalid nonce")]
+    #[msg("Invalid Nonce")]
     InvaildNonce,
     #[msg("UnAuthorized")]
     UnAuthorized,
+    #[msg("Invalid Lock Period")]
     InvalidLockPeriod,
+    #[msg("Invalid Amount")]
     InvalidAmount,
-
+    #[msg("Reward Already Claimed")]
     RewardAlreadyClaimed,
+    #[msg("Stake Reward Not Claimable")]
     StakeRewardNotClaimable,
+    #[msg("Reward Is Zero")]
     RewardIsZero,
 }
 

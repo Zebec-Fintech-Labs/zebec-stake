@@ -29,7 +29,7 @@ pub struct WhitelistStaker<'info> {
         seeds = [staker.key().as_ref(), lockup.key().as_ref(), args.nonce.to_le_bytes().as_ref()],
         bump
     )]
-    pub user_pda: Box<Account<'info, UserStakeData>>,
+    pub stake_pda: Box<Account<'info, UserStakeData>>,
     pub stake_token: Account<'info, Mint>,
     pub system_program: Program<'info, System>,
 }
@@ -40,11 +40,12 @@ pub struct WhitelistStakerParams {
     pub nonce: u64,
     pub lock_period: i64,
     pub created_time: i64,
+    pub claimed: bool,
 }
 
 pub fn handler(ctx: Context<WhitelistStaker>, params: WhitelistStakerParams) -> Result<()> {
     let lockup = &mut ctx.accounts.lockup;
-    let stake_pda = &mut ctx.accounts.user_pda;
+    let stake_pda = &mut ctx.accounts.stake_pda;
     let user_nonce = &mut ctx.accounts.user_nonce;
     let admin = &ctx.accounts.admin;
     let stake_token = &ctx.accounts.stake_token;
@@ -56,6 +57,7 @@ pub fn handler(ctx: Context<WhitelistStaker>, params: WhitelistStakerParams) -> 
     stake_pda.created_time = params.created_time;
     stake_pda.nonce = params.nonce;
     stake_pda.lock_period = params.lock_period;
+    stake_pda.stake_claimed = params.claimed;
     user_nonce.nonce += 1;
     Ok(())
 }
