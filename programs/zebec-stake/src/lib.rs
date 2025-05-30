@@ -8,7 +8,7 @@ use constants::*;
 use instructions::*;
 use state::*;
 
-declare_id!("Fe5ymSEjtQ229rmfhYkNtWR1dS7ctFwoSCN7hibhDLA6");
+declare_id!("zSTKzGLiN6T6EVzhBiL6sjULXMahDavAS2p4R62afGv");
 
 #[program]
 pub mod zebec_stake {

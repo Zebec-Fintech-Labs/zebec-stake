@@ -3,7 +3,6 @@ use anchor_spl::{
     associated_token::AssociatedToken,
     token::{Mint, Token},
 };
-
 use crate::{constants::REWARD_VAULT, InitConfigParams, Lockup, LOCKUP, STAKE_VAULT};
 
 #[derive(Accounts)]
@@ -12,7 +11,7 @@ pub struct InitLockup<'info> {
     #[account(mut)]
     creator: Signer<'info>,
     #[account(
-        init_if_needed,
+        init,
         payer = creator,
         space = 8 + Lockup::INIT_SPACE,
         seeds = [LOCKUP.as_bytes(), args.name.as_bytes()],
@@ -20,7 +19,7 @@ pub struct InitLockup<'info> {
     )]
     pub lockup: Box<Account<'info, Lockup>>,
     #[account(
-        init_if_needed,
+        init,
         payer = creator,
         space = 0,
         seeds = [STAKE_VAULT.as_bytes(), lockup.key().as_ref()],
@@ -29,7 +28,7 @@ pub struct InitLockup<'info> {
     /// CHECK: seeds has been checked
     pub stake_vault: AccountInfo<'info>,
     #[account(
-        init_if_needed,
+        init,
         payer = creator,
         space = 0,
         seeds = [REWARD_VAULT.as_bytes(), lockup.key().as_ref()],

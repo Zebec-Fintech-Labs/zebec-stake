@@ -26,10 +26,6 @@ pub enum ZbcnStakeError {
     StakeRewardNotClaimable,
     #[msg("Reward Is Zero")]
     RewardIsZero,
-}
-
-#[error_code]
-pub enum ZbcnUnstakeError {
     #[msg("Stake Already Claimed")]
     StakeAlreadyClaimed,
     #[msg("Stake Not Claimable")]

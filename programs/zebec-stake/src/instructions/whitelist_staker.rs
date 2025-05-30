@@ -3,6 +3,7 @@ use anchor_spl::token::Mint;
 
 use crate::{
     error::ZbcnStakeError,
+    LOCKUP,
     state::{Lockup, UserNonce, UserStakeData},
 };
 
@@ -11,6 +12,11 @@ use crate::{
 pub struct WhitelistStaker<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [LOCKUP.as_bytes(), lockup.stake_info.name.as_bytes()],
+        bump
+    )]
     pub lockup: Account<'info, Lockup>,
     #[account(
         init_if_needed,

@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-stake_zbcn = "Fe5ymSEjtQ229rmfhYkNtWR1dS7ctFwoSCN7hibhDLA6"
+stake_zbcn = "zSTKzGLiN6T6EVzhBiL6sjULXMahDavAS2p4R62afGv"
 
 [programs.localnet]
 stake_zbcn = "6S5tbu8jPJKFvpBMjaMPQbcwcrw8iHcuGnXH8ZwHgwaE"
