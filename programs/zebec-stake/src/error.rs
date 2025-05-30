@@ -30,4 +30,6 @@ pub enum ZbcnStakeError {
     StakeAlreadyClaimed,
     #[msg("Stake Not Claimable")]
     StakeNotClaimable,
+    #[msg("Minimum Stake Not Met")]
+    MinimumStakeNotMet
 }

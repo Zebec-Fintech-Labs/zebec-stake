@@ -9,6 +9,8 @@ pub struct UserStakeData {
     pub reward_amount: u64,
     pub stake_claimed: bool,
     pub lock_period: i64,
+    pub staker: Pubkey,
+    pub lockup: Pubkey,
 }
 
 #[account]

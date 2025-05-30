@@ -14,6 +14,7 @@ pub struct StakeInfo {
     #[max_len(30)]
     pub name: String,
     pub creator: Pubkey,
+    pub minimum_stake: u64,
     #[max_len(250)]
     duration_map: Vec<DurationMap>,
 }
@@ -46,6 +47,7 @@ pub struct InitConfigParams {
     pub name: String,
     pub fee: u64,
     pub fee_vault: Pubkey,
+    pub minimum_stake: u64,
     pub duration_map: Vec<DurationMap>,
 }
 
@@ -71,10 +73,12 @@ impl Lockup {
         self.staked_token.total_staked = 0;
         self.staked_token.token_address = staked_token;
 
+        self.stake_info.minimum_stake = params.minimum_stake;
+        
         self.fee_info.fee = params.fee;
         self.fee_info.fee_vault = params.fee_vault;
 
-        for f in params.duration_map.iter() {
+        for f in params.duration_map.iter() {       
             self.set_duration_map(f.duration, f.reward);
         }
         Ok(())

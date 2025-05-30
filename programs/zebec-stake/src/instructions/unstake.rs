@@ -105,7 +105,7 @@ pub fn handler(ctx: Context<Unstake>, _nonce: u64) -> Result<()> {
     )?;
 
     let annual_reward_rate = lockup.get_reward_for_duration(duration as u64).unwrap() as f64 / 10000.0;
-    let total_reward_amount = stake_pda.staked_amount as f64 * (annual_reward_rate) / SECONDS_PER_YEAR * (stake_pda.lock_period as f64);
+    let total_reward_amount = stake_pda.staked_amount as f64 * (annual_reward_rate / SECONDS_PER_YEAR) * (stake_pda.lock_period as f64);
 
     if total_reward_amount as u64 == 0 {
         return Err(ZbcnStakeError::RewardIsZero.into());
