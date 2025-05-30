@@ -1,25 +1,30 @@
+import 'dotenv/config';
+
 import {
+  Address,
+  Program,
+  Provider,
+} from '@coral-xyz/anchor';
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
   createInitializeMint2Instruction,
   createMintToInstruction,
   createTransferCheckedInstruction,
-  createTransferInstruction,
   getAccount,
   getAssociatedTokenAddress,
   getMinimumBalanceForRentExemptMint,
   MINT_SIZE,
-  MintLayout,
   TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
-import "dotenv/config";
+} from '@solana/spl-token';
 import {
-  Connection,
   Keypair,
   PublicKey,
   SystemProgram,
   Transaction,
-} from "@solana/web3.js";
-import { BN, Provider } from "@coral-xyz/anchor";
+} from '@solana/web3.js';
+
+import { ZebecStake } from '../target/types/zebec_stake';
 
 export async function createNewMint(provider: Provider) {
   const mint = Keypair.generate();
@@ -28,7 +33,8 @@ export async function createNewMint(provider: Provider) {
     mint.publicKey,
     provider.publicKey,
     true,
-    TOKEN_PROGRAM_ID
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
   );
 
   const transaction = new Transaction().add(
@@ -68,10 +74,12 @@ export async function createNewMint(provider: Provider) {
   return mint.publicKey;
 }
 
-export async function transferToStakeVault(
-  stakeVault: PublicKey,
-  stakeVaultTokenAccount: PublicKey,
+export async function fundTokenAccount(
+  to:PublicKey,
+  toAta: PublicKey,
   mint: PublicKey,
+  mintDecimals: number,
+  amount: number,
   provider: Provider
 ) {
   const sourceAta = await getAssociatedTokenAddress(
@@ -84,20 +92,19 @@ export async function transferToStakeVault(
   const transaction = new Transaction().add(
     createAssociatedTokenAccountInstruction(
       provider.publicKey,
-      stakeVaultTokenAccount,
-      stakeVault,
+      toAta,
+      to,
       mint,
-      TOKEN_PROGRAM_ID
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
     ),
     createTransferCheckedInstruction(
       sourceAta,
       mint,
-      stakeVaultTokenAccount,
+      toAta,
       provider.publicKey,
-      1000 * 10 ** 6,
-      6,
-      undefined,
-      TOKEN_PROGRAM_ID
+      amount * 10 ** mintDecimals,
+      mintDecimals,
     )
   );
   await provider.sendAndConfirm(transaction);
@@ -117,7 +124,6 @@ export async function getFeeVault(provider: Provider, mint: PublicKey) {
       feeVaultTokenAccount,
       feeVault.publicKey,
       mint,
-      TOKEN_PROGRAM_ID
     )
   );
   await provider.sendAndConfirm(transaction);
@@ -139,3 +145,22 @@ export function daysToSeconds(days: number) {
 export function parseZbcnUnits(amount: number) {
   return amount * 10 ** 6;
 }
+
+export async function getUserNonceInfo(program: Program<ZebecStake>, userNonceAddress: Address): Promise<{ nonce: bigint}> {
+  try {
+		const userNonceAccount = await program.account.userNonce.fetchNullable(
+			userNonceAddress,
+			program.provider.connection.commitment,
+		);
+
+		if (!userNonceAccount) {
+			return null;
+		}
+
+		return {
+			nonce: BigInt(userNonceAccount.nonce.toString()),
+		};
+  } catch (error) {
+    return null;
+  }
+	}
