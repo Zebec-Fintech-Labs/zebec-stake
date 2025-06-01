@@ -5,6 +5,7 @@ use crate::{
     error::ZbcnStakeError,
     LOCKUP,
     state::{Lockup, UserNonce, UserStakeData},
+    SECONDS_PER_YEAR
 };
 
 #[derive(Accounts)]
@@ -54,6 +55,7 @@ pub fn handler(ctx: Context<WhitelistStaker>, params: WhitelistStakerParams) -> 
     let stake_pda = &mut ctx.accounts.stake_pda;
     let user_nonce = &mut ctx.accounts.user_nonce;
     let admin = &ctx.accounts.admin;
+    let staker = &ctx.accounts.staker;
     let stake_token = &ctx.accounts.stake_token;
 
     run_validations(stake_token.key(), lockup, user_nonce, &params, admin.key())?;
@@ -64,7 +66,17 @@ pub fn handler(ctx: Context<WhitelistStaker>, params: WhitelistStakerParams) -> 
     stake_pda.nonce = params.nonce;
     stake_pda.lock_period = params.lock_period;
     stake_pda.stake_claimed = params.claimed;
+    stake_pda.staker = staker.key();
+    stake_pda.lockup = lockup.key();
     user_nonce.nonce += 1;
+
+    if stake_pda.stake_claimed == true {
+        let annual_reward_rate = lockup.get_reward_for_duration(stake_pda.lock_period as u64).unwrap() as f64 / 10000.0;
+        let total_reward_amount = stake_pda.staked_amount as f64 * (annual_reward_rate / SECONDS_PER_YEAR) * (stake_pda.lock_period as f64);
+
+        stake_pda.reward_amount += total_reward_amount as u64;
+    }
+
     Ok(())
 }
 
