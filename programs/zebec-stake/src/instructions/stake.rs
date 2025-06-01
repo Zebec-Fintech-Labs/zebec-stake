@@ -92,14 +92,14 @@ pub fn handler(ctx: Context<Stake>, params: StakeParams) -> Result<()> {
 
     transfer(ctx_spl, params.amount)?;
 
-    stake_pda.staked_amount += params.amount;
-    lockup.staked_token.total_staked += params.amount;
+    stake_pda.staked_amount = params.amount;
     stake_pda.created_time = current_time;
     stake_pda.nonce = params.nonce;
     stake_pda.lock_period = params.lock_period;
     stake_pda.staker = staker.key();
     stake_pda.lockup = lockup.key();
     user_nonce.nonce += 1;
+    lockup.staked_token.total_staked += params.amount;
 
     Ok(())
 }

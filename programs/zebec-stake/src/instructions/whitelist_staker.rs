@@ -60,8 +60,7 @@ pub fn handler(ctx: Context<WhitelistStaker>, params: WhitelistStakerParams) -> 
 
     run_validations(stake_token.key(), lockup, user_nonce, &params, admin.key())?;
 
-    stake_pda.staked_amount += params.amount;
-    lockup.staked_token.total_staked += params.amount;
+    stake_pda.staked_amount = params.amount;
     stake_pda.created_time = params.created_time;
     stake_pda.nonce = params.nonce;
     stake_pda.lock_period = params.lock_period;
@@ -69,12 +68,13 @@ pub fn handler(ctx: Context<WhitelistStaker>, params: WhitelistStakerParams) -> 
     stake_pda.staker = staker.key();
     stake_pda.lockup = lockup.key();
     user_nonce.nonce += 1;
+    lockup.staked_token.total_staked += params.amount;
 
     if stake_pda.stake_claimed == true {
         let annual_reward_rate = lockup.get_reward_for_duration(stake_pda.lock_period as u64).unwrap() as f64 / 10000.0;
         let total_reward_amount = stake_pda.staked_amount as f64 * (annual_reward_rate / SECONDS_PER_YEAR) * (stake_pda.lock_period as f64);
 
-        stake_pda.reward_amount += total_reward_amount as u64;
+        stake_pda.reward_amount = total_reward_amount as u64;
     }
 
     Ok(())

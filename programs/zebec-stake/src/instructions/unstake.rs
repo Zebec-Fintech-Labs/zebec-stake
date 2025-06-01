@@ -168,7 +168,7 @@ pub fn handler(ctx: Context<Unstake>, _nonce: u64) -> Result<()> {
     );
     transfer(ctx_transfer_fee, fee_amount)?;
 
-    stake_pda.reward_amount += total_reward_amount as u64;
+    stake_pda.reward_amount = total_reward_amount as u64;
     stake_pda.stake_claimed = true;
 
     Ok(())
