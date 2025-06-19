@@ -1,10 +1,17 @@
-use crate::{
-    constants::REWARD_VAULT, error::ZbcnStakeError, Lockup, UserStakeData, LOCKUP, STAKE_VAULT, SECONDS_PER_YEAR
-};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{transfer, Mint, Token, TokenAccount, Transfer},
+};
+use crate::{
+    constants::REWARD_VAULT, 
+    error::ZbcnStakeError, 
+    Lockup, 
+    UserStakeData,
+    events::Unstaked,
+    LOCKUP, 
+    STAKE_VAULT, 
+    SECONDS_PER_YEAR
 };
 
 #[derive(Accounts)]
@@ -171,6 +178,13 @@ pub fn handler(ctx: Context<Unstake>, _nonce: u64) -> Result<()> {
     stake_pda.reward_amount = total_reward_amount as u64;
     stake_pda.stake_claimed = true;
 
+    emit!(Unstaked {
+        staker: stake_pda.staker,
+        unstake_amount: unstake_amount,
+        reward_amount: stake_pda.reward_amount,
+        lock_period: stake_pda.lock_period,
+    });
+
     Ok(())
 }
 
@@ -199,6 +213,6 @@ fn run_validations(
         current_time > (stake_pda.created_time + stake_pda.lock_period),
         ZbcnStakeError::StakeRewardNotClaimable
     );
-
+    
     Ok(())
 }

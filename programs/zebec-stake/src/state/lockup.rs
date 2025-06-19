@@ -16,7 +16,7 @@ pub struct StakeInfo {
     pub creator: Pubkey,
     pub minimum_stake: u64,
     #[max_len(250)]
-    duration_map: Vec<DurationMap>,
+    pub duration_map: Vec<DurationMap>,
 }
 
 #[derive(InitSpace, Clone, AnchorDeserialize, AnchorSerialize)]

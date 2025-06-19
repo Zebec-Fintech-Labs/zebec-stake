@@ -1,8 +1,16 @@
-use crate::{error::ZbcnStakeError, state::UserNonce, Lockup, UserStakeData, LOCKUP, STAKE_VAULT};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{transfer, Mint, Token, TokenAccount, Transfer},
+};
+use crate::{
+    error::ZbcnStakeError, 
+    state::UserNonce,
+    events::Staked,
+    Lockup, 
+    UserStakeData, 
+    LOCKUP, 
+    STAKE_VAULT
 };
 
 #[derive(Accounts)]
@@ -100,6 +108,13 @@ pub fn handler(ctx: Context<Stake>, params: StakeParams) -> Result<()> {
     stake_pda.lockup = lockup.key();
     user_nonce.nonce += 1;
     lockup.staked_token.total_staked += params.amount;
+
+    emit!(Staked {
+        staker: staker.key(),
+        stake_amount: stake_pda.staked_amount,
+        nonce: stake_pda.nonce,
+        lock_period: stake_pda.lock_period,
+    });
 
     Ok(())
 }

@@ -1,10 +1,10 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
-
 use crate::{
     error::ZbcnStakeError,
     LOCKUP,
     state::{Lockup, UserNonce, UserStakeData},
+    events::StakerWhitelisted,
     SECONDS_PER_YEAR
 };
 
@@ -76,6 +76,15 @@ pub fn handler(ctx: Context<WhitelistStaker>, params: WhitelistStakerParams) -> 
 
         stake_pda.reward_amount = total_reward_amount as u64;
     }
+
+    emit!(StakerWhitelisted {
+        staker: staker.key(),
+        amount: stake_pda.staked_amount,
+        nonce: stake_pda.nonce,
+        lock_period: stake_pda.lock_period,
+        claimed: stake_pda.stake_claimed,
+        created_time: stake_pda.created_time,
+    });
 
     Ok(())
 }

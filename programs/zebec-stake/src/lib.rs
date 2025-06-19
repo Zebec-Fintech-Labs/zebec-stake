@@ -2,6 +2,7 @@ mod constants;
 mod error;
 mod instructions;
 mod state;
+mod events;
 
 use anchor_lang::prelude::*;
 use constants::*;
