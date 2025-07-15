@@ -1,17 +1,11 @@
+use crate::{
+    constants::REWARD_VAULT, error::ZbcnStakeError, events::Unstaked, Lockup, UserStakeData,
+    LOCKUP, SECONDS_PER_YEAR, STAKE_VAULT,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{transfer, Mint, Token, TokenAccount, Transfer},
-};
-use crate::{
-    constants::REWARD_VAULT, 
-    error::ZbcnStakeError, 
-    Lockup, 
-    UserStakeData,
-    events::Unstaked,
-    LOCKUP, 
-    STAKE_VAULT, 
-    SECONDS_PER_YEAR
 };
 
 #[derive(Accounts)]
@@ -19,6 +13,8 @@ use crate::{
 pub struct Unstake<'info> {
     #[account(mut)]
     pub staker: Signer<'info>,
+    #[account(mut)]
+    pub fee_payer: Signer<'info>,
     #[account(
         mut,
         seeds = [LOCKUP.as_bytes(), lockup.stake_info.name.as_bytes()],
@@ -35,14 +31,14 @@ pub struct Unstake<'info> {
     pub stake_token: Account<'info, Mint>,
     #[account(
         init_if_needed,
-        payer = staker,
+        payer = fee_payer,
         associated_token::mint = stake_token,
         associated_token::authority = staker,
     )]
     pub staker_token_account: Account<'info, TokenAccount>,
     #[account(
         init_if_needed,
-        payer = staker,
+        payer = fee_payer,
         associated_token::mint = reward_token,
         associated_token::authority = staker,
     )]
@@ -63,14 +59,14 @@ pub struct Unstake<'info> {
     pub reward_vault: AccountInfo<'info>,
     #[account(
         init_if_needed,
-        payer = staker,
+        payer = fee_payer,
         associated_token::mint = stake_token,
         associated_token::authority = stake_vault,
     )]
     pub stake_vault_token_account: Account<'info, TokenAccount>,
     #[account(
         init_if_needed,
-        payer = staker,
+        payer = fee_payer,
         associated_token::mint = reward_token,
         associated_token::authority = reward_vault,
     )]
@@ -111,8 +107,11 @@ pub fn handler(ctx: Context<Unstake>, _nonce: u64) -> Result<()> {
         current_time,
     )?;
 
-    let annual_reward_rate = lockup.get_reward_for_duration(duration as u64).unwrap() as f64 / 10000.0;
-    let total_reward_amount = stake_pda.staked_amount as f64 * (annual_reward_rate / SECONDS_PER_YEAR) * (stake_pda.lock_period as f64);
+    let annual_reward_rate =
+        lockup.get_reward_for_duration(duration as u64).unwrap() as f64 / 10000.0;
+    let total_reward_amount = stake_pda.staked_amount as f64
+        * (annual_reward_rate / SECONDS_PER_YEAR)
+        * (stake_pda.lock_period as f64);
 
     if total_reward_amount as u64 == 0 {
         return Err(ZbcnStakeError::RewardIsZero.into());
@@ -213,6 +212,6 @@ fn run_validations(
         current_time > (stake_pda.created_time + stake_pda.lock_period),
         ZbcnStakeError::StakeRewardNotClaimable
     );
-    
+
     Ok(())
 }

@@ -1,15 +1,11 @@
+use crate::{
+    constants::REWARD_VAULT, events::LockupInitialized, InitConfigParams, Lockup, LOCKUP,
+    STAKE_VAULT,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{Mint, Token},
-};
-use crate::{
-    constants::REWARD_VAULT, 
-    events::LockupInitialized,
-    InitConfigParams, 
-    Lockup, 
-    LOCKUP, 
-    STAKE_VAULT
 };
 
 #[derive(Accounts)]

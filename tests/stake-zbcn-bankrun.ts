@@ -1,39 +1,26 @@
-import {
-  BankrunProvider,
-  startAnchor,
-} from 'anchor-bankrun';
-import { expect } from 'chai';
-import {
-  BanksClient,
-  Clock,
-  ProgramTestContext,
-} from 'solana-bankrun';
+import { BankrunProvider, startAnchor } from "anchor-bankrun";
+import { expect } from "chai";
+import { BanksClient, Clock, ProgramTestContext } from "solana-bankrun";
 
-import * as anchor from '@coral-xyz/anchor';
-import { Program } from '@coral-xyz/anchor';
+import * as anchor from "@coral-xyz/anchor";
+import { Program } from "@coral-xyz/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddress,
   getOrCreateAssociatedTokenAccount,
   TOKEN_PROGRAM_ID,
-} from '@solana/spl-token';
-import {
-  Keypair,
-  PublicKey,
-} from '@solana/web3.js';
+} from "@solana/spl-token";
+import { Keypair, PublicKey } from "@solana/web3.js";
 
-import { ZebecStake } from '../target/types/zebec_stake';
-import {
-  InitConfigParams,
-  rewardSchemes,
-} from './constants';
+import { ZebecStake } from "../target/types/zebec_stake";
+import { InitConfigParams, rewardSchemes } from "./constants";
 import {
   deriveLockupAddress,
   deriveRewardVaultAddress,
   deriveStakeVaultAddress,
   deriveUserNonceAddress,
-  deriveStakeAddress
-} from './pda';
+  deriveStakeAddress,
+} from "./pda";
 import {
   createNewMint,
   daysToSeconds,
@@ -42,7 +29,7 @@ import {
   getTokenAccountBalance,
   getUserNonceInfo,
   parseZbcnUnits,
-} from './utils';
+} from "./utils";
 
 /* 
   For a user who stakes 1,000 ZBCN for 90 days at 12% APY,
@@ -61,17 +48,17 @@ describe("stake-zbcn", async () => {
   let rewardVaultAta: PublicKey;
   let staker1: Keypair;
   let staker1Ata: PublicKey;
-  let stakerNonce1:PublicKey;
+  let stakerNonce1: PublicKey;
   let feeVaultTokenAccount: PublicKey;
   let feeVault: PublicKey;
   let lockup: PublicKey;
   let stakeVault: PublicKey;
   let rewardVault: PublicKey;
+  let feePayer: Keypair;
   let lockUpData: InitConfigParams;
   const LOCKUP_NAME = "test-lockup";
 
   before(async () => {
-
     context = await startAnchor("", [], []);
     client = context.banksClient;
 
@@ -82,26 +69,28 @@ describe("stake-zbcn", async () => {
     console.log("sender", program.provider.publicKey.toBase58());
     console.log("programId", program.programId.toBase58());
 
-    lockup = deriveLockupAddress(
-      LOCKUP_NAME,
-      program.programId
-    );
+    feePayer = anchor.web3.Keypair.generate();
+    console.log("feePayer", feePayer.publicKey.toBase58());
 
-    stakeVault = deriveStakeVaultAddress(
-      lockup,
-      program.programId
+    // transfer sol to feePayer from provider wallet
+    const transferSolTx = new anchor.web3.Transaction().add(
+      anchor.web3.SystemProgram.transfer({
+        fromPubkey: provider.wallet.payer.publicKey,
+        toPubkey: feePayer.publicKey,
+        lamports: 1000000000, // 1 SOL
+      })
     );
+    await provider.sendAndConfirm(transferSolTx, [provider.wallet.payer]);
+
+    lockup = deriveLockupAddress(LOCKUP_NAME, program.programId);
+
+    stakeVault = deriveStakeVaultAddress(lockup, program.programId);
     console.log("stake vault", stakeVault.toBase58());
-    
-    rewardVault = deriveRewardVaultAddress(
-      lockup,
-      program.programId
-    );
+
+    rewardVault = deriveRewardVaultAddress(lockup, program.programId);
     console.log("rewardVault", rewardVault.toBase58());
 
-    mint = await createNewMint(
-      provider
-    )
+    mint = await createNewMint(provider);
     console.log("mint", mint.toBase58());
 
     const stakeVaultTokenAccount = await getAssociatedTokenAddress(
@@ -110,7 +99,7 @@ describe("stake-zbcn", async () => {
       true
     );
     console.log("stakeVaultTokenAccount", stakeVaultTokenAccount.toBase58());
-    
+
     stakeVaultAta = stakeVaultTokenAccount;
 
     // transfer tokens to stake vault for rewards
@@ -119,7 +108,7 @@ describe("stake-zbcn", async () => {
       stakeVaultAta,
       mint,
       6,
-      1000, // 1 million 
+      1000, // 1 million
       provider
     );
 
@@ -135,7 +124,7 @@ describe("stake-zbcn", async () => {
       rewardVaultAta,
       mint,
       6,
-      1000, 
+      1000,
       provider
     );
 
@@ -146,20 +135,15 @@ describe("stake-zbcn", async () => {
     //   staker1.publicKey,
     //   10000000000 // 10 million lamports
     // );
-    
 
-    staker1Ata = await getAssociatedTokenAddress(
-      mint,
-      staker1.publicKey,
-      true,
-    );
+    staker1Ata = await getAssociatedTokenAddress(mint, staker1.publicKey, true);
 
     stakerNonce1 = deriveUserNonceAddress(
       staker1.publicKey,
       lockup,
       program.programId
     );
-    
+
     // await fundTokenAccount(
     //   staker1.publicKey,
     //   staker1Ata,
@@ -168,7 +152,6 @@ describe("stake-zbcn", async () => {
     //   1000000, // 1 million
     //   provider,
     // );
-
 
     [feeVault, feeVaultTokenAccount] = await getFeeVault(provider, mint);
   });
@@ -182,7 +165,7 @@ describe("stake-zbcn", async () => {
         durationMap: rewardSchemes,
         minimumStake: new anchor.BN(parseZbcnUnits(1000)), // 1000 ZBCN
       };
- 
+
       const tx = await program.methods
         .initLockup(lockUpData)
         .accountsStrict({
@@ -195,7 +178,6 @@ describe("stake-zbcn", async () => {
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: TOKEN_PROGRAM_ID,
-      
         })
         .signers([provider.wallet.payer])
         .rpc();
@@ -224,7 +206,7 @@ describe("stake-zbcn", async () => {
       nonce,
       program.programId
     );
-   
+
     try {
       type StakeConfigParams = {
         amount: anchor.BN;
@@ -252,6 +234,7 @@ describe("stake-zbcn", async () => {
         .stakeZbcn(data)
         .accountsStrict({
           staker: staker1.publicKey,
+          feePayer: feePayer.publicKey,
           lockup: lockup,
           stakePda: staker1Pda,
           stakeToken: mint,
@@ -263,7 +246,7 @@ describe("stake-zbcn", async () => {
           systemProgram: anchor.web3.SystemProgram.programId,
           userNonce: stakerNonce1,
         })
-        .signers([staker1])
+        .signers([staker1, feePayer])
         .rpc();
       // console.log("✅✅ Stake signature", stakeSig);
 
@@ -278,14 +261,13 @@ describe("stake-zbcn", async () => {
       );
 
       expect(
-        stakeVaultTokenAccountBalanceBefore + BigInt(data.amount.toString()) 
+        stakeVaultTokenAccountBalanceBefore + BigInt(data.amount.toString())
       ).to.be.equal(stakeVaultTokenAccountBalanceAfter);
 
       expect(
-        staker1TokenAccountBalanceBefore - BigInt(data.amount.toString()) 
+        staker1TokenAccountBalanceBefore - BigInt(data.amount.toString())
       ).to.be.equal(staker1TokenAccountBalanceAfter);
 
-      
       const timestamp = Math.floor(Date.now() / 1000);
       const currentClock = await client.getClock();
       context.setClock(
@@ -294,10 +276,7 @@ describe("stake-zbcn", async () => {
           currentClock.epochStartTimestamp,
           currentClock.epoch,
           currentClock.leaderScheduleEpoch,
-          BigInt(timestamp) +
-            BigInt(
-              timestamp + daysToSeconds(90)
-            )
+          BigInt(timestamp) + BigInt(timestamp + daysToSeconds(90))
         )
       );
 
@@ -310,10 +289,11 @@ describe("stake-zbcn", async () => {
         provider,
         stakeVaultAta
       );
-      
+
       const unstakeSig = await program.methods
         .unstakeZbcn(new anchor.BN(nonce.toString()))
         .accountsStrict({
+          feePayer: feePayer.publicKey,
           rewardToken: mint,
           rewardVault,
           rewardVaultTokenAccount: rewardVaultAta,
@@ -331,7 +311,7 @@ describe("stake-zbcn", async () => {
           systemProgram: anchor.web3.SystemProgram.programId,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         })
-        .signers([staker1])
+        .signers([staker1, feePayer])
         .rpc();
       // console.log("✅✅ Unstake signature", unstakeSig);
 
@@ -346,16 +326,19 @@ describe("stake-zbcn", async () => {
       );
 
       /// 1000*0.12/(365*86400)*(90*86400)
-      let expectedReward = parseZbcnUnits(1000*0.12/(365*86400)*(90*86400));
+      let expectedReward = parseZbcnUnits(
+        ((1000 * 0.12) / (365 * 86400)) * (90 * 86400)
+      );
 
       expect(
-        stakeVaultTokenAccountBalanceBefore - BigInt(data.amount.toString()) 
+        stakeVaultTokenAccountBalanceBefore - BigInt(data.amount.toString())
       ).to.be.equal(stakeVaultTokenAccountBalanceAfter);
-      
-      expect(
-        staker1TokenAccountBalanceBefore + BigInt(data.amount.toString()) + BigInt(expectedReward.toFixed()) 
-      ).to.be.equal(staker1TokenAccountBalanceAfter);
 
+      expect(
+        staker1TokenAccountBalanceBefore +
+          BigInt(data.amount.toString()) +
+          BigInt(expectedReward.toFixed())
+      ).to.be.equal(staker1TokenAccountBalanceAfter);
     } catch (error) {
       throw error;
     }
@@ -370,7 +353,7 @@ describe("stake-zbcn", async () => {
       nonce,
       program.programId
     );
-   
+
     let error: Error | undefined;
     try {
       type StakeConfigParams = {
@@ -389,6 +372,7 @@ describe("stake-zbcn", async () => {
         .stakeZbcn(data)
         .accountsStrict({
           staker: staker1.publicKey,
+          feePayer: feePayer.publicKey,
           lockup: lockup,
           stakePda: staker1Pda,
           userNonce: stakerNonce1,
@@ -400,6 +384,7 @@ describe("stake-zbcn", async () => {
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         })
+        .signers([staker1, feePayer])
         .rpc();
       // console.log("✅✅ Stake signature", stakeSig);
     } catch (err) {
@@ -420,7 +405,7 @@ describe("stake-zbcn", async () => {
       program.programId
     );
     let error: Error | undefined;
-   
+
     try {
       type StakeConfigParams = {
         amount: anchor.BN;
@@ -438,6 +423,7 @@ describe("stake-zbcn", async () => {
         .stakeZbcn(data)
         .accountsStrict({
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          feePayer: feePayer.publicKey,
           staker: staker1.publicKey,
           lockup: lockup,
           stakePda: staker1Pda,
@@ -449,14 +435,15 @@ describe("stake-zbcn", async () => {
           systemProgram: anchor.web3.SystemProgram.programId,
           userNonce: stakerNonce1,
         })
-        .signers([staker1])
+        .signers([staker1, feePayer])
         .rpc();
       // console.log("✅✅ Stake signature", stakeSig);
-    
-    const unstakeSig = await program.methods
+
+      const unstakeSig = await program.methods
         .unstakeZbcn(new anchor.BN(nonce.toString()))
         .accountsStrict({
           rewardToken: mint,
+          feePayer: feePayer.publicKey,
           rewardVault,
           rewardVaultTokenAccount: rewardVaultAta,
           stakerRewardTokenAccount: staker1Ata,
@@ -473,7 +460,7 @@ describe("stake-zbcn", async () => {
           systemProgram: anchor.web3.SystemProgram.programId,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         })
-        .signers([staker1])
+        .signers([staker1, feePayer])
         .rpc();
       // console.log("✅✅ Unstake signature", unstakeSig);
     } catch (e) {
@@ -482,7 +469,7 @@ describe("stake-zbcn", async () => {
     expect(error).not.to.be.undefined;
     expect(error.message).to.include("StakeRewardNotClaimable");
   });
-  
+
   it("Cannot stake with less than minimum amount", async () => {
     const nonceInfo = await getUserNonceInfo(program, stakerNonce1);
     const nonce = nonceInfo ? nonceInfo.nonce : BigInt(0);
@@ -510,6 +497,7 @@ describe("stake-zbcn", async () => {
         .stakeZbcn(data)
         .accountsStrict({
           staker: staker1.publicKey,
+          feePayer: feePayer.publicKey,
           lockup: lockup,
           stakePda: staker1Pda,
           userNonce: stakerNonce1,
@@ -521,16 +509,16 @@ describe("stake-zbcn", async () => {
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         })
+        .signers([staker1, feePayer])
         .rpc();
 
-        // expect error to be thrown
-        
+      // expect error to be thrown
     } catch (err) {
       error = err;
     }
     expect(error).not.to.be.undefined;
     expect(error.message).to.include("MinimumStakeNotMet");
-   });
+  });
 
   it("Double unstaking", async () => {
     const nonce = BigInt(0);
@@ -540,35 +528,36 @@ describe("stake-zbcn", async () => {
       nonce,
       program.programId
     );
-    let error:any = undefined;
+    let error: any = undefined;
     try {
       await program.methods
-          .unstakeZbcn(new anchor.BN(nonce.toString()))
-          .accountsStrict({
-            rewardToken: mint,
-            rewardVault,
-            rewardVaultTokenAccount: rewardVaultAta,
-            stakerRewardTokenAccount: staker1Ata,
-            staker: program.provider.publicKey,
-            lockup: lockup,
-            stakePda: staker1Pda,
-            stakeToken: mint,
-            stakerTokenAccount: staker1Ata,
-            stakeVault: stakeVault,
-            stakeVaultTokenAccount: stakeVaultAta,
-            feeVault: feeVault,
-            feeVaultTokenAccount,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: anchor.web3.SystemProgram.programId,
-            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          })
-          .signers([staker1])
-          .rpc();
-      } catch (e) {
-        error = e;
-      }
-      expect(error).not.to.be.undefined;  
-      expect(error.message).to.include("RewardAlreadyClaimed.");
+        .unstakeZbcn(new anchor.BN(nonce.toString()))
+        .accountsStrict({
+          rewardToken: mint,
+          feePayer: feePayer.publicKey,
+          rewardVault,
+          rewardVaultTokenAccount: rewardVaultAta,
+          stakerRewardTokenAccount: staker1Ata,
+          staker: program.provider.publicKey,
+          lockup: lockup,
+          stakePda: staker1Pda,
+          stakeToken: mint,
+          stakerTokenAccount: staker1Ata,
+          stakeVault: stakeVault,
+          stakeVaultTokenAccount: stakeVaultAta,
+          feeVault: feeVault,
+          feeVaultTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        })
+        .signers([staker1, feePayer])
+        .rpc();
+    } catch (e) {
+      error = e;
+    }
+    expect(error).not.to.be.undefined;
+    expect(error.message).to.include("RewardAlreadyClaimed.");
   });
 
   it("stake and unstake outside of lock period maps", async () => {
@@ -594,10 +583,11 @@ describe("stake-zbcn", async () => {
         nonce: new anchor.BN(nonce.toString()),
       };
 
-       const stakeSig = await program.methods
+      const stakeSig = await program.methods
         .stakeZbcn(data)
         .accountsStrict({
           staker: staker1.publicKey,
+          feePayer: feePayer.publicKey,
           lockup: lockup,
           stakePda: staker1Pda,
           userNonce: stakerNonce1,
@@ -609,31 +599,33 @@ describe("stake-zbcn", async () => {
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         })
+        .signers([staker1, feePayer])
         .rpc();
-        
-        const unstakeSig = await program.methods
-          .unstakeZbcn(new anchor.BN(nonce.toString()))
-          .accountsStrict({
-            rewardToken: mint,
-            rewardVault,
-            rewardVaultTokenAccount: rewardVaultAta,
-            stakerRewardTokenAccount: staker1Ata,
-            staker: program.provider.publicKey,
-            lockup: lockup,
-            stakePda: staker1Pda,
-            stakeToken: mint,
-            stakerTokenAccount: staker1Ata,
-            stakeVault: stakeVault,
-            stakeVaultTokenAccount: stakeVaultAta,
-            feeVault: feeVault,
-            feeVaultTokenAccount,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: anchor.web3.SystemProgram.programId,
-            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          })
-          .rpc();
-        // expect error to be thrown
-        
+
+      const unstakeSig = await program.methods
+        .unstakeZbcn(new anchor.BN(nonce.toString()))
+        .accountsStrict({
+          rewardToken: mint,
+          feePayer: feePayer.publicKey,
+          rewardVault,
+          rewardVaultTokenAccount: rewardVaultAta,
+          stakerRewardTokenAccount: staker1Ata,
+          staker: program.provider.publicKey,
+          lockup: lockup,
+          stakePda: staker1Pda,
+          stakeToken: mint,
+          stakerTokenAccount: staker1Ata,
+          stakeVault: stakeVault,
+          stakeVaultTokenAccount: stakeVaultAta,
+          feeVault: feeVault,
+          feeVaultTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        })
+        .signers([staker1, feePayer])
+        .rpc();
+      // expect error to be thrown
     } catch (err) {
       error = err;
     }

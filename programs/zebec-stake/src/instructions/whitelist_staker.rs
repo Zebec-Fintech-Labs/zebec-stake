@@ -1,12 +1,11 @@
-use anchor_lang::prelude::*;
-use anchor_spl::token::Mint;
 use crate::{
     error::ZbcnStakeError,
-    LOCKUP,
-    state::{Lockup, UserNonce, UserStakeData},
     events::StakerWhitelisted,
-    SECONDS_PER_YEAR
+    state::{Lockup, UserNonce, UserStakeData},
+    LOCKUP, SECONDS_PER_YEAR,
 };
+use anchor_lang::prelude::*;
+use anchor_spl::token::Mint;
 
 #[derive(Accounts)]
 #[instruction(args: WhitelistStakerParams)]
@@ -71,8 +70,13 @@ pub fn handler(ctx: Context<WhitelistStaker>, params: WhitelistStakerParams) -> 
     lockup.staked_token.total_staked += params.amount;
 
     if stake_pda.stake_claimed == true {
-        let annual_reward_rate = lockup.get_reward_for_duration(stake_pda.lock_period as u64).unwrap() as f64 / 10000.0;
-        let total_reward_amount = stake_pda.staked_amount as f64 * (annual_reward_rate / SECONDS_PER_YEAR) * (stake_pda.lock_period as f64);
+        let annual_reward_rate = lockup
+            .get_reward_for_duration(stake_pda.lock_period as u64)
+            .unwrap() as f64
+            / 10000.0;
+        let total_reward_amount = stake_pda.staked_amount as f64
+            * (annual_reward_rate / SECONDS_PER_YEAR)
+            * (stake_pda.lock_period as f64);
 
         stake_pda.reward_amount = total_reward_amount as u64;
     }

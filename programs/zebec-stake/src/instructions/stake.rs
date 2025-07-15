@@ -1,16 +1,11 @@
+use crate::{
+    error::ZbcnStakeError, events::Staked, state::UserNonce, Lockup, UserStakeData, LOCKUP,
+    STAKE_VAULT,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{transfer, Mint, Token, TokenAccount, Transfer},
-};
-use crate::{
-    error::ZbcnStakeError, 
-    state::UserNonce,
-    events::Staked,
-    Lockup, 
-    UserStakeData, 
-    LOCKUP, 
-    STAKE_VAULT
 };
 
 #[derive(Accounts)]
@@ -18,6 +13,8 @@ use crate::{
 pub struct Stake<'info> {
     #[account(mut)]
     pub staker: Signer<'info>,
+    #[account(mut)]
+    pub fee_payer: Signer<'info>,
     #[account(
         mut,
         seeds =[LOCKUP.as_bytes(), lockup.stake_info.name.as_bytes()],
@@ -26,7 +23,7 @@ pub struct Stake<'info> {
     pub lockup: Account<'info, Lockup>,
     #[account(
         init_if_needed,
-        payer = staker,
+        payer = fee_payer,
         space = 8 + UserStakeData::INIT_SPACE,
         seeds = [staker.key().as_ref(), lockup.key().as_ref(), args.nonce.to_le_bytes().as_ref()],
         bump
@@ -34,7 +31,7 @@ pub struct Stake<'info> {
     pub stake_pda: Box<Account<'info, UserStakeData>>,
     #[account(
         init_if_needed,
-        payer = staker,
+        payer = fee_payer,
         space = 8 + UserNonce::INIT_SPACE,
         seeds = [staker.key().as_ref(), lockup.key().as_ref()],
         bump
@@ -56,7 +53,7 @@ pub struct Stake<'info> {
     pub stake_vault: AccountInfo<'info>,
     #[account(
         init_if_needed,
-        payer = staker,
+        payer = fee_payer,
         associated_token::mint = stake_token,
         associated_token::authority = stake_vault,
     )]

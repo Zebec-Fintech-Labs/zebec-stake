@@ -14,8 +14,9 @@ zebec_stake = "zSTKzGLiN6T6EVzhBiL6sjULXMahDavAS2p4R62afGv"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
 stake = "RUST_LOG= yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/stake-zbcn-bankrun.ts"
+fetch-pda = "RUST_LOG= yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/fetch-stake-pda.ts"
