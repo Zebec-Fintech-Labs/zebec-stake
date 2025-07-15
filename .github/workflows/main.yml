@@ -1,0 +1,125 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  ANCHOR_VERSION: 0.31.1
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Node cache
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.yarn
+            node_modules
+            .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      # Rust cache
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # Anchor CLI cache
+      - name: Cache Anchor CLI
+        uses: actions/cache@v4
+        with:
+          path: ~/.avm
+          key: ${{ runner.os }}-avm-${{ env.ANCHOR_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-avm-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Solana
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+
+      - name: Install Node dependencies
+        run: npm i -g yarn && yarn install
+
+      - name: Install rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          . "$HOME/.cargo/env"
+
+      - name: Install Anchor
+        run: |
+          cargo install --git https://github.com/coral-xyz/anchor avm --force
+          avm install ${{ env.ANCHOR_VERSION }}
+          avm use ${{ env.ANCHOR_VERSION }}
+
+      - name: Generate keypair
+        run: |
+          solana --version
+          mkdir -p ~/.config/solana
+          solana-keygen new --no-bip39-passphrase --outfile ~/.config/solana/id.json
+
+      - name: Set Solana config
+        run: |
+          solana config set --url devnet
+          solana config set --keypair ~/.config/solana/id.json
+
+      - name: Build program
+        run: |
+          anchor build
+          anchor keys sync
+
+      - name: Run tests
+        run: |
+          anchor run stake
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-artifacts
+          path: |
+            target/deploy/
+            target/idl/
+            target/types/
+
+      - name: Send Telegram notification with build artifacts
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          STATUS="${{ job.status }}"
+          REPO="${{ github.repository }}"
+          REF_NAME="${{ github.ref_name }}"
+          SHA="${{ github.sha }}"
+          COMMIT_MSG="$(git log -1 --pretty=%B)"
+          ARTIFACT_PATH="build-artifacts.zip"
+          zip -r $ARTIFACT_PATH target/deploy target/idl target/types || true
+          MSG="Build $STATUS: 
+          $REPO
+          Branch: $REF_NAME
+          Commit: $SHA 
+          Commit message: $COMMIT_MSG"
+          curl -s -F document=@$ARTIFACT_PATH -F chat_id=$TELEGRAM_CHAT_ID -F caption="$MSG" -F parse_mode=Markdown https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument

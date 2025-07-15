@@ -14,7 +14,7 @@ describe("fetch-stake-pda", () => {
 
   it.only("decodes stake PDA and user nonce PDA", async () => {
     const staker = new PublicKey(
-      "8pyJrGpbXhiJ7NphADCVz6DQXxqCVsgVSrmEQQZuEn7A"
+      "8Vm6Uid7iSu3xcYVY8Yx6rSyXNqTEd3CW77DfGjzw1EG"
     );
 
     const endpoint = anchor.getProvider().connection.rpcEndpoint;
@@ -36,6 +36,7 @@ describe("fetch-stake-pda", () => {
     // Fetch only if nonce is null
     if (!nonce) {
       const nonceInfo = await getUserNonceInfo(program, stakerNoncePda);
+      console.log("nonceInfo", nonceInfo);
       nonce = nonceInfo ? BigInt(nonceInfo?.nonce) - BigInt(1) : BigInt(0);
       console.log("nonce", nonce.toString());
     }
