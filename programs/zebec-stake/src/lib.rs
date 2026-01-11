@@ -33,4 +33,11 @@ pub mod zebec_stake {
     ) -> Result<()> {
         whitelist_staker::handler(ctx, params)
     }
+
+    pub fn update_lockup(
+        ctx: Context<UpdateLockup>,
+        params: UpdateLockupParams,
+    ) -> Result<()> {
+        update_lockup::handler(ctx, params)
+    }
 }

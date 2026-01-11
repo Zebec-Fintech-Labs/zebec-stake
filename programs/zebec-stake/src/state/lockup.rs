@@ -51,6 +51,14 @@ pub struct InitConfigParams {
     pub duration_map: Vec<DurationMap>,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct UpdateLockupParams {
+    pub fee: u64,
+    pub fee_vault: Pubkey,
+    pub minimum_stake: u64,
+    pub duration_map: Vec<DurationMap>,
+}
+
 impl DurationMap {
     fn new(duration: u64, reward: u64) -> Self {
         Self { duration, reward }
@@ -104,5 +112,20 @@ impl Lockup {
         }
         // None
         Some(0)
+    }
+
+    pub fn update_lockup(
+        &mut self,
+        params: UpdateLockupParams,
+    ) -> std::result::Result<(), anchor_lang::error::Error> {
+        self.stake_info.minimum_stake = params.minimum_stake;
+        self.fee_info.fee = params.fee;
+        self.fee_info.fee_vault = params.fee_vault;
+
+        self.stake_info.duration_map.clear();
+        for f in params.duration_map.iter() {
+            self.set_duration_map(f.duration, f.reward);
+        }
+        Ok(())
     }
 }

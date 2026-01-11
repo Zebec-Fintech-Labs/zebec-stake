@@ -36,3 +36,11 @@ pub struct StakerWhitelisted {
     pub claimed: bool,
     pub created_time: i64,
 }
+
+#[event]
+pub struct LockupUpdated {
+    pub fee: u64,
+    pub fee_vault: Pubkey,
+    pub minimum_stake: u64,
+    pub duration_map: Vec<DurationMap>,
+}
