@@ -161,18 +161,20 @@ pub fn handler(ctx: Context<Unstake>, _nonce: u64) -> Result<()> {
 
     transfer(ctx_unstake, unstake_amount)?;
 
-    // Transfer Fee
-    let transfer_fee = Transfer {
-        from: stake_vault_token_account.to_account_info(),
-        to: fee_vault_token_account.to_account_info(),
-        authority: stake_vault.to_account_info(),
-    };
-    let ctx_transfer_fee: CpiContext<'_, '_, '_, '_, _> = CpiContext::new_with_signer(
-        token_program.to_account_info(),
-        transfer_fee,
-        lockup_vault_seed,
-    );
-    transfer(ctx_transfer_fee, fee_amount)?;
+    if fee_amount > 0 {
+        // Transfer Fee
+        let transfer_fee = Transfer {
+            from: stake_vault_token_account.to_account_info(),
+            to: fee_vault_token_account.to_account_info(),
+            authority: stake_vault.to_account_info(),
+        };
+        let ctx_transfer_fee: CpiContext<'_, '_, '_, '_, _> = CpiContext::new_with_signer(
+            token_program.to_account_info(),
+            transfer_fee,
+            lockup_vault_seed,
+        );
+        transfer(ctx_transfer_fee, fee_amount)?;
+    }
 
     stake_pda.reward_amount = total_reward_amount as u64;
     stake_pda.stake_claimed = true;
