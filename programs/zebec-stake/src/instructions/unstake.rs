@@ -27,22 +27,22 @@ pub struct Unstake<'info> {
         bump
     )]
     pub stake_pda: Box<Account<'info, UserStakeData>>,
-    pub reward_token: Account<'info, Mint>,
-    pub stake_token: Account<'info, Mint>,
+    pub reward_token: Box<Account<'info, Mint>>,
+    pub stake_token: Box<Account<'info, Mint>>,
     #[account(
         init_if_needed,
         payer = fee_payer,
         associated_token::mint = stake_token,
         associated_token::authority = staker,
     )]
-    pub staker_token_account: Account<'info, TokenAccount>,
+    pub staker_token_account: Box<Account<'info, TokenAccount>>,
     #[account(
         init_if_needed,
         payer = fee_payer,
         associated_token::mint = reward_token,
         associated_token::authority = staker,
     )]
-    pub staker_reward_token_account: Account<'info, TokenAccount>,
+    pub staker_reward_token_account: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         seeds = [STAKE_VAULT.as_bytes(), lockup.key().as_ref()],
@@ -63,14 +63,14 @@ pub struct Unstake<'info> {
         associated_token::mint = stake_token,
         associated_token::authority = stake_vault,
     )]
-    pub stake_vault_token_account: Account<'info, TokenAccount>,
+    pub stake_vault_token_account: Box<Account<'info, TokenAccount>>,
     #[account(
         init_if_needed,
         payer = fee_payer,
         associated_token::mint = reward_token,
         associated_token::authority = reward_vault,
     )]
-    pub reward_vault_token_account: Account<'info, TokenAccount>,
+    pub reward_vault_token_account: Box<Account<'info, TokenAccount>>,
     #[account(
         constraint = lockup.fee_info.fee_vault == *fee_vault.key,
     )]
@@ -81,7 +81,7 @@ pub struct Unstake<'info> {
         associated_token::mint = stake_token,
         associated_token::authority = lockup.fee_info.fee_vault,
     )]
-    pub fee_vault_token_account: Account<'info, TokenAccount>,
+    pub fee_vault_token_account: Box<Account<'info, TokenAccount>>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
