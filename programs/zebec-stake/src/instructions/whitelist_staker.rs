@@ -5,7 +5,7 @@ use crate::{
     LOCKUP, SECONDS_PER_YEAR,
 };
 use anchor_lang::prelude::*;
-use anchor_spl::token::Mint;
+use anchor_spl::token::{Mint, Token};
 
 #[derive(Accounts)]
 #[instruction(args: WhitelistStakerParams)]
@@ -38,6 +38,7 @@ pub struct WhitelistStaker<'info> {
     pub stake_pda: Box<Account<'info, UserStakeData>>,
     pub stake_token: Account<'info, Mint>,
     pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]

@@ -1,6 +1,5 @@
 use crate::{
-    constants::LOCKUP, Lockup, UpdateLockupParams, events::LockupUpdated,
-    error::ZbcnStakeError,
+    constants::LOCKUP, error::ZbcnStakeError, events::LockupUpdated, Lockup, UpdateLockupParams,
 };
 use anchor_lang::prelude::*;
 
@@ -21,7 +20,10 @@ pub fn handler(ctx: Context<UpdateLockup>, params: UpdateLockupParams) -> Result
     let lockup = &mut ctx.accounts.lockup;
 
     // Validate updater is the lockup creator
-    require!(lockup.stake_info.creator == ctx.accounts.updater.key(), ZbcnStakeError::UnAuthorized);
+    require!(
+        lockup.stake_info.creator == ctx.accounts.updater.key(),
+        ZbcnStakeError::UnAuthorized
+    );
 
     lockup.stake_info.minimum_stake = params.minimum_stake;
     lockup.fee_info.fee = params.fee;

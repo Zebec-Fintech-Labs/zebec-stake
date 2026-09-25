@@ -85,7 +85,7 @@ pub fn handler(ctx: Context<Stake>, params: StakeParams) -> Result<()> {
         return Err(ZbcnStakeError::InvaildNonce.into());
     }
 
-    run_validations(stake_token.key(), lockup, params.amount)?;
+    run_validations(stake_token.key(), lockup, params.amount, params.lock_period)?;
 
     let trns_spl = Transfer {
         from: staker_stake_token_account.to_account_info(),
@@ -116,7 +116,7 @@ pub fn handler(ctx: Context<Stake>, params: StakeParams) -> Result<()> {
     Ok(())
 }
 
-fn run_validations(stake_token: Pubkey, lockup: &Lockup, amount: u64) -> Result<()> {
+fn run_validations(stake_token: Pubkey, lockup: &Lockup, amount: u64, lock_period: i64) -> Result<()> {
     require!(
         stake_token == lockup.staked_token.token_address,
         ZbcnStakeError::InvalidStakeToken
@@ -124,6 +124,10 @@ fn run_validations(stake_token: Pubkey, lockup: &Lockup, amount: u64) -> Result<
     require!(
         amount >= lockup.stake_info.minimum_stake,
         ZbcnStakeError::MinimumStakeNotMet
+    );
+    require!(
+        lock_period >= 0 && lockup.get_reward_for_duration(lock_period as u64).is_some(),
+        ZbcnStakeError::InvalidLockPeriod
     );
     Ok(())
 }

@@ -82,11 +82,11 @@ impl Lockup {
         self.staked_token.token_address = staked_token;
 
         self.stake_info.minimum_stake = params.minimum_stake;
-        
+
         self.fee_info.fee = params.fee;
         self.fee_info.fee_vault = params.fee_vault;
 
-        for f in params.duration_map.iter() {       
+        for f in params.duration_map.iter() {
             self.set_duration_map(f.duration, f.reward);
         }
         Ok(())
@@ -110,8 +110,7 @@ impl Lockup {
                 return Some(f.reward);
             }
         }
-        // None
-        Some(0)
+        None
     }
 
     pub fn update_lockup(

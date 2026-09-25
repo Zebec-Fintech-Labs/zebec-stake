@@ -1,8 +1,8 @@
 mod constants;
 mod error;
+mod events;
 mod instructions;
 mod state;
-mod events;
 
 use anchor_lang::prelude::*;
 use constants::*;
@@ -34,10 +34,7 @@ pub mod zebec_stake {
         whitelist_staker::handler(ctx, params)
     }
 
-    pub fn update_lockup(
-        ctx: Context<UpdateLockup>,
-        params: UpdateLockupParams,
-    ) -> Result<()> {
+    pub fn update_lockup(ctx: Context<UpdateLockup>, params: UpdateLockupParams) -> Result<()> {
         update_lockup::handler(ctx, params)
     }
 }
